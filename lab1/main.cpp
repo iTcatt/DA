@@ -1,55 +1,67 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 #include <math.h>
 #include <algorithm>
 
 using namespace std;
 
-void CountingSort(vector<int> &input, int radix) {
+struct Node {
+    unsigned long long key;
+    string value;
+};
+
+void CountingSort(vector<Node> &input, int radix) {
     int counter[10];
     for (int i = 0; i < 10; ++i) {
         counter[i] = 0;
     }
    
-    int r = pow(10, radix);
+    unsigned long long r = pow(10, radix);
     for (int i = 0; i < input.size(); ++i) {
-        counter[(input[i] / r) % 10] += 1;
+        counter[(input[i].key / r) % 10] += 1;
     }
     
     for (int i = 1; i < 10; ++i) {
         counter[i] += counter[i-1];
     }
 
-    vector<int> result(input.size());
-    copy(input.begin(), input.end(), result.begin());
+    vector<Node> helper(input.size());
+    copy(input.begin(), input.end(), helper.begin());
    
     for (int i = input.size() - 1; i >= 0; --i) {
-        input[counter[result[i] / r % 10] - 1] = result[i];
-        counter[result[i] / r % 10] -= 1;
+        input[counter[helper[i].key / r % 10] - 1] = helper[i];
+        counter[helper[i].key / r % 10] -= 1;
     }
 
 }
 
-void RadixSort(vector<int> &input, int max_radix) {
+void RadixSort(vector<Node> &input, int max_radix) {
     for (int i = 0; i < max_radix; ++i) {
         CountingSort(input, i);
     }
 }
 
+bool cmp(Node first, Node second) {
+    return first.key < second.key;
+}
+
 int main() {
-    int tmp;
-    vector<int> input;
-    while (cin >> tmp) {
+    unsigned long long key;
+    string value;
+    vector<Node> input;
+    while (cin >> key >> value) {
+        Node tmp = {key, value};
         input.push_back(tmp);
     }
     // тестовый массив, для проверки сортировки
-    vector<int> test(input.size());
+    vector<Node> test(input.size());
     copy(input.begin(), input.end(), test.begin());  
     // ------------------------------------------------
     int max_radix = -1;
     for (int i = 0; i < input.size(); ++i) {
-        tmp = input[i];
+        unsigned long long tmp = input[i].key;
         int current = 0; 
         while (tmp > 0) {
             ++current;
@@ -57,15 +69,15 @@ int main() {
         }
         max_radix = max(current, max_radix);
     }
-    
+    RadixSort(input, max_radix);
     cout << "my result\n";
     for (int i = 0; i < input.size(); ++i) {
-        cout << input[i] << ' ';
+        cout << input[i].key << " " << input[i].value << "\n";
     }
     cout << "\n\n";
-    sort(test.begin(), test.end());
+    sort(test.begin(), test.end(), cmp);
     for (auto elem : test) {
-        cout << elem << " ";
+        cout << elem.key << " " << elem.value << "\n";
     }
     cout << "\n";
     return 0;
