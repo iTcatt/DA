@@ -20,14 +20,6 @@ public:
         array = new Data[capacity];
     }
 
-    int getSize() {
-        return size;
-    }
-
-    int getCapacity() {
-        return capacity;
-    }
-
     void readFromFile(char* file_name) {
         FILE* input = fopen(file_name, "r");
         unsigned long long key;  
