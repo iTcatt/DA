@@ -1,5 +1,7 @@
 #include <iostream>
 #include <stdio.h>
+#include <chrono>
+#include <algorithm>
 #include <string.h>
 #include <math.h>
 
@@ -18,6 +20,14 @@ public:
         capacity = 1;
         size = 0;
         array = new Data[capacity];
+    }
+    
+    Data* begin() {
+		return &array[0];
+    }
+
+    Data* end() {
+        return &array[size];
     }
 
     void ReadFromFile(char* file_name) {
@@ -107,14 +117,34 @@ public:
         delete[] array;
     }
 
+    void BubbleSort() {
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                if (array[i].key < array[j].key) {
+                    std::swap(array[i], array[j]);
+                }
+            }
+        }
+    }
+
 };
+
+bool cmp(Data first, Data second) {
+    return first.key < second.key;
+}
 
 int main() {
     Vector data_array;
-    char input_file[] = "input.txt";
+    char input_file[] = "lol.txt";
     data_array.ReadFromFile(input_file);
-    data_array.RadixSort();
-    data_array.Print();
+    auto start = std::chrono::high_resolution_clock::now();
+    // std::sort(data_array.begin(), data_array.end(), cmp);
+    // data_array.RadixSort();
+    // data_array.BubbleSort();
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Time Bubble sort: " << duration.count() << " microseconds" << "\n";
+    // data_array.Print();
     data_array.Destroy();
     return 0;
 }
