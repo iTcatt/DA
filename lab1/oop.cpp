@@ -27,7 +27,7 @@ public:
     }
 
     Data* end() {
-        return &array[size];
+        return &array[size-1];
     }
 
     void ReadFromFile(char* file_name) {
@@ -110,7 +110,7 @@ public:
         }   
     }
 
-    void Destroy() {
+    ~Vector() {
         for (int i = 0; i < size; ++i) {
             delete[] array[i].value;
         }   
@@ -135,16 +135,15 @@ bool cmp(Data first, Data second) {
 
 int main() {
     Vector data_array;
-    char input_file[] = "lol.txt";
+    char input_file[] = "test.txt";
     data_array.ReadFromFile(input_file);
-    auto start = std::chrono::high_resolution_clock::now();
+    // auto start = std::chrono::high_resolution_clock::now();
     // std::sort(data_array.begin(), data_array.end(), cmp);
-    // data_array.RadixSort();
+    data_array.RadixSort();
     // data_array.BubbleSort();
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "Time Bubble sort: " << duration.count() << " microseconds" << "\n";
-    // data_array.Print();
-    data_array.Destroy();
+    // auto stop = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    // std::cout << "Time Bubble sort: " << duration.count() << " microseconds" << "\n";
+    data_array.Print();
     return 0;
 }
