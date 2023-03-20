@@ -20,7 +20,7 @@ public:
         array = new Data[capacity];
     }
 
-    void readFromFile(char* file_name) {
+    void ReadFromFile(char* file_name) {
         FILE* input = fopen(file_name, "r");
         unsigned long long key;  
         char buffer[2048];
@@ -31,7 +31,7 @@ public:
             }
             str[strlen(buffer)] = '\0';
             if (size == capacity) {
-                addMemory();
+                AddMemory();
             }
             array[size] = {key, str};
             ++size;
@@ -39,7 +39,7 @@ public:
         fclose(input);
     }
     
-    void addMemory() {
+    void AddMemory() {
         Data* tmp = array;
         array = new Data[capacity * 2];
         for (int i = 0; i < capacity; ++i) {
@@ -49,7 +49,7 @@ public:
         delete[] tmp;
     }
 
-    int getMaxDischarge() {
+    int GetMaxDischarge() {
         int max_discharge = -1;
         for (int i = 0; i < size; ++i) {
             unsigned long long number = array[i].key;
@@ -63,13 +63,14 @@ public:
         return max_discharge;
     }  
 
-    void radixSort(int max_discharge) {
+    void RadixSort() {
+        int max_discharge = GetMaxDischarge();
         for (int discharge = 0; discharge < max_discharge; ++discharge) {
-            countingSort(discharge);
+            CountingSort(discharge);
         }
     }
 
-    void countingSort(int discharge) {
+    void CountingSort(int discharge) {
         int counter[10] = {0};
         unsigned long long ten_power_discharge = std::pow(10, discharge);
         
@@ -93,9 +94,14 @@ public:
         delete[] copy_array;
     }
 
-    void printAndDeleteArray() {
+    void Print() {
         for (int i = 0; i < size; ++i) {
             printf("%llu\t%s\n", array[i].key, array[i].value);
+        }   
+    }
+
+    void Destroy() {
+        for (int i = 0; i < size; ++i) {
             delete[] array[i].value;
         }   
         delete[] array;
@@ -106,9 +112,9 @@ public:
 int main() {
     Vector data_array;
     char input_file[] = "input.txt";
-    data_array.readFromFile(input_file);
-    int max_discharge = data_array.getMaxDischarge();
-    data_array.radixSort(max_discharge);
-    data_array.printAndDeleteArray();
+    data_array.ReadFromFile(input_file);
+    data_array.RadixSort();
+    data_array.Print();
+    data_array.Destroy();
     return 0;
 }
