@@ -19,14 +19,6 @@ public:
         array_ = new Data[capacity_];
     }
     
-    Data* begin() {
-		return &array_[0];
-    }
-
-    Data* end() {
-        return &array_[size_-1];
-    }
-
     void ReadFromFile(char* file_name) {
         FILE* input = fopen(file_name, "r");
         unsigned long long key;  
@@ -61,7 +53,7 @@ public:
             CountingSort(byte);
         }
     }
-
+    
     void CountingSort(int byte) {
         int counter[256] = {0};
         for (int i = 0; i < size_; ++i) {
