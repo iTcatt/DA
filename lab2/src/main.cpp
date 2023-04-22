@@ -10,41 +10,10 @@ struct Data {
     unsigned long long value;
 };
 
-bool Equal(char* a, char* b) {
-    if (strlen(a) != strlen(b)) {
-        return false;
-    }
-    int n = strlen(a);
-    for (int i = 0; i < n; ++i) {
-        if (tolower(a[i]) != tolower(b[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-// TODO: заменить на strcmp
-bool IsLeftMoreThanRight(char* left, char* right) {
-    int min_len = strlen(left) > strlen(right) ? strlen(right) : strlen(left);
-
-    for (int i = 0; i < min_len; ++i) {
-        if (tolower(left[i]) > tolower(right[i])) {
-            return true;
-        } else if (tolower(left[i]) < tolower(right[i])) {
-            return false;
-        }
-    }
-    if (min_len == (int)strlen(left)) {
-        return false;
-    } 
-    return true;
-    
-}
-
 struct Node {
-    Data* data; // An array of data
-    Node** child; // An array of child pointers
-    int n; // Current number of data
+    Data* data; // массив ключ-значение
+    Node** child; // массив указателей на детей
+    int n; // количество элементов
     bool leaf;
     int t;
 
@@ -53,6 +22,10 @@ struct Node {
     Node* Search(char*); // поиск ноды с нужным ключем
     void SplitChild(int, Node*);
     void InsertNonFull(Data);
+    void Remove(char*);
+    void RemoveFromLeaf(int);
+    void RemoveFromNonLeaf(int);
+    void Merge(int);
 };
 
 Node::Node(int _t, bool is_leaf) {
@@ -68,21 +41,22 @@ void Node::Traverse() {
         if (leaf == false) {
             child[i]->Traverse();
         }
-        cout << " " << data[i].key << " " << data[i].value << "\n";
+        cout << data[i].key << " " << data[i].value << " ";
     }
     // обработка последнего ребенка
     if (leaf == false) {
         child[n]->Traverse();
     }
+    cout << "\n";
 }
 
 Node* Node::Search(char* key) {
     int i = 0;
-    while (i < n && IsLeftMoreThanRight(key, data[i].key)) {
+    while (i < n && strcmp(key, data[i].key) > 0) {
         i++;
     }
 
-    if (Equal(key, data[i].key)) {
+    if (strcmp(key, data[i].key) == 0) {
         return this;
     }
 
@@ -130,26 +104,84 @@ void Node::InsertNonFull(Data elem) {
     int i = n - 1;
 
     if (leaf == true) {
-        while (i >= 0 && IsLeftMoreThanRight(data[i].key, elem.key)) {
+        while (i >= 0 && strcmp(data[i].key, elem.key) > 0) {
             data[i+1] = data[i];
             --i;
         }
         data[i + 1] = elem;
         ++n;
     } else {
-        while (i >= 0 && IsLeftMoreThanRight(data[i].key, elem.key)) {
+        while (i >= 0 && strcmp(data[i].key, elem.key) > 0) {
             --i;
         }
         // если ребенок заполнен
         if (child[i+1]->n == 2*t-1) {
             this->SplitChild(i + 1, child[i+1]);
 
-            if (IsLeftMoreThanRight(elem.key, data[i+1].key)) {
+            if (strcmp(elem.key, data[i+1].key) > 0) {
                 ++i;
             }
         }
         child[i+1]->InsertNonFull(elem);
     }
+}
+
+void Node::Remove(char* key) {
+    int idx = 0;
+    while (idx < n && strcmp(key, data[idx].key) > 0) {
+        ++idx;
+    }
+
+    if (idx < n && strcmp(key, data[idx].key) == 0) {
+        if (leaf) {
+            RemoveFromLeaf(idx);
+        } else {
+            RemoveFromNonLeaf(idx); 
+        }
+    } else {
+
+    }
+}
+
+void Node::RemoveFromLeaf(int index) {
+    for (int i = index+1; i < n; i++) {
+        data[i-1] = data[i];
+    }
+    --n;
+}
+
+void Node::RemoveFromNonLeaf(int index) {
+    cout << index;
+}
+
+void Node::Merge(int index) {
+    Node* left_child = child[index];
+    Node* right_child = child[index+1];
+
+    // спускаем родителя вниз
+    left_child->data[t-1] = data[index];
+    // копируем значения
+    for (int i = 0; i < t - 1; ++i) {
+        left_child->data[i+t] = right_child->data[i]; 
+    }
+    // копируем детей
+    if (!left_child->leaf) {
+        for (int i = 0; i < t; ++i) {
+            left_child->child[i + t] = right_child->child[i];
+        }
+    }
+    // так как мы спустили родителя, то смещаем все ключи родильского узла влево
+    for (int i = index + 1; i < n; ++i) {
+        data[i-1] = data[i];
+    }
+
+    for (int i = index + 2; i < n; ++i) {
+        child[i-1] = child[i];
+    }
+
+    left_child->n = 2*t - 1;
+    --n;
+    delete[] right_child;
 }
 
 class BTree {
@@ -191,7 +223,7 @@ void BTree::AddNode(Data elem) {
         new_root->SplitChild(0, root);
         // отвечает за то, в какое поддерево нужно вставлять ключ
         int i = 0;
-        if (IsLeftMoreThanRight(elem.key, new_root->data[0].key)) {
+        if (strcmp(elem.key, new_root->data[0].key) > 0) {
             ++i;
         }
         new_root->InsertNonFull(elem);
@@ -214,7 +246,7 @@ void BTree::Search(char* key) {
         cout << "NoSuchWord\n";
     } else {
         int i = 0;
-        while (i < result->n && IsLeftMoreThanRight(key, result->data[i].key)) {
+        while (i < result->n && strcmp(key, result->data[i].key) > 0) {
             i++;
         }
         cout << "OK: " << result->data[i].value << "\n";
@@ -223,7 +255,19 @@ void BTree::Search(char* key) {
 }
 
 void BTree::DeleteNode(char* key) {
-    cout << key << " was deleted\n";
+    if (root == nullptr) {
+        cout << "NoSuchWord\n";
+        return;
+    }
+    
+    if (root->Search(key) == nullptr) {
+        cout << "NoSuchWord\n";
+        return;
+    }
+
+
+
+    
 }
 
 void BTree::SaveToFile(char* path) {
@@ -242,12 +286,19 @@ void BTree::Print() {
     }
 }
 
+void TolowerString(char* str) {
+    int len = strlen(str);
+    for (int i = 0; i < len; ++i) {
+        str[i] = tolower(str[i]);
+    }
+}
+
 int main() {
     // ios_base::sync_with_stdio(false);
     // cin.tie(NULL); 
     // cout.tie(NULL);
 
-    BTree Tree(2);
+    BTree Tree(3);
     char key[MAX_SIZE];
     char path[MAX_SIZE];
     char buffer[MAX_SIZE];
@@ -256,10 +307,12 @@ int main() {
             case '+':
                 Data data;
                 cin >> data.key >> data.value;
+                TolowerString(data.key);
                 Tree.AddNode(data);
                 break;
             case '-':
                 cin >> key;
+                TolowerString(data.key);
                 Tree.DeleteNode(key);
                 break;
             case '!':
@@ -274,6 +327,7 @@ int main() {
                 Tree.Print();
                 break;
             default:
+                TolowerString(buffer);
                 Tree.Search(buffer);
                 break;
         }
