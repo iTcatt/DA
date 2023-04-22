@@ -18,7 +18,7 @@ struct Node {
     int t;
 
     Node(int, bool);
-    void Traverse(); // функция вывода всех ключей текущего поддерева
+    void Traverse(int); // функция вывода всех ключей текущего поддерева
     Node* Search(char*); // поиск ноды с нужным ключем
     void SplitChild(int, Node*);
     void InsertNonFull(Data);
@@ -36,18 +36,20 @@ Node::Node(int _t, bool is_leaf) {
     n = 0;
 }
 
-void Node::Traverse() {
+void Node:: Traverse(int depth) {
     for (int i = 0; i < n; i++) {
         if (leaf == false) {
-            child[i]->Traverse();
+            child[i]->Traverse(depth+1);
         }
-        cout << data[i].key << " " << data[i].value << " ";
+        for (int j = 0; j < depth; ++j) {
+            cout << "\t";
+        } 
+        cout << data[i].key << " " << data[i].value << "\n";
     }
     // обработка последнего ребенка
     if (leaf == false) {
-        child[n]->Traverse();
+        child[n]->Traverse(depth+1);
     }
-    cout << "\n";
 }
 
 Node* Node::Search(char* key) {
@@ -280,7 +282,7 @@ void BTree::LoadFromFile(char* path) {
 
 void BTree::Print() {
     if (root != nullptr) {
-        root->Traverse();
+        root->Traverse(0);
     } else {
         cout << "Emtpy\n";
     }
