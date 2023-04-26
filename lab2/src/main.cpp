@@ -19,7 +19,6 @@ struct Node {
     int t; // характеристическое число
 
     Node(int, bool);
-    ~Node();
     void Traverse(int); // функция вывода всех ключей текущего поддерева
     Node* Search(char*); // поиск ноды с нужным ключем
     void SplitChild(int, Node*); // если ребенок переполнен, разделяем его
@@ -46,10 +45,6 @@ Node::Node(int _t, bool is_leaf) {
     }
     n = 0;
 }
-
-// Node::~Node() {
-//     for (int i = 0; i < 2 * t; ++i)
-// }
 
 void Node::Traverse(int depth) {
     for (int i = 0; i < n; i++) {
@@ -157,6 +152,11 @@ void Node::Remove(char* key) {
         }
     } else {
         // при 
+        if (leaf) {
+            cout << "NoSuchWord\n";
+            return;
+        }
+
         bool flag;
         if (idx == n) {
             flag = true;
@@ -194,7 +194,8 @@ void Node::RemoveFromNonLeaf(int index) {
         // нахожу максимальный ключ в левом поддереве
         Node* tmp = child[index];
         while (!tmp->leaf) {
-            tmp = tmp->child[n];
+            // тут был жесткий баг я написал child[n] 
+            tmp = tmp->child[tmp->n];
         }
         new_parent = tmp->data[tmp->n-1];
         // найденный ключ ставлю на место того ключа, который удаляю
@@ -317,7 +318,9 @@ void Node::Merge(int index) {
 
     left_child->n = 2*t - 1;
     --n;
+    // здесь была утечка памяти
     delete[] right_child->data;
+    delete[] right_child->child;
     delete right_child;
 }
 
@@ -342,6 +345,7 @@ class BTree {
 public:
     BTree(int);
     void AddNode(Data);
+    void AddWithoutWord(Data);
     void DeleteNode(char*);
     void Search(char*);
     void SaveToFile(char*);
@@ -391,7 +395,6 @@ void BTree::AddNode(Data elem) {
         root->InsertNonFull(elem);
     }
     cout << "OK\n";
-
 }
 
 void BTree::Search(char* key) {
@@ -410,7 +413,6 @@ void BTree::Search(char* key) {
         }
         cout << "OK: " << result->data[i].value << "\n";
     }
-
 }
 
 void BTree::DeleteNode(char* key) {
@@ -433,6 +435,7 @@ void BTree::DeleteNode(char* key) {
         } else {
             root = root->child[0];
         }
+        // здесь была утечка памяти
         delete[] tmp->data;
         delete[] tmp->child;
         delete tmp;
@@ -442,26 +445,30 @@ void BTree::DeleteNode(char* key) {
 }
 
 void Node::Save(ofstream &out) {
-    // out.write((char*)&n, sizeof(int));
+    char end_token = '#';
+    
     if (child[0] == nullptr) {
         for (int i = 0; i < n; ++i) {
-            out.write(data[i].key, sizeof(char) * MAX_SIZE);  
+            out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
             out.write((char*)&data[i].value, sizeof(long long int));
+            out.write((char*)&end_token, sizeof(char));
         }
     } else {
         for (int i = 0; i < n; ++i) {
             child[i]->Save(out);
-            out.write(data[i].key, sizeof(char) * MAX_SIZE);  
+            out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
             out.write((char*)&data[i].value, sizeof(long long int));
+            out.write((char*)&end_token, sizeof(char));
         }
         child[n]->Save(out);
     }
     // for (int i = 0; i < n; ++i) {
-    //      if (child[i] != nullptr) {
-                // child[i]->Save(out);
-    //      }    
-        // out.write(data[i].key, sizeof(char) * MAX_SIZE);  
-        // out.write((char*)&data[i].value, sizeof(long long int));
+    //     if (child[i] != nullptr) {
+    //         child[i]->Save(out);
+    //     }    
+    //     out.write(data[i].key, sizeof(char) * MAX_SIZE);  
+    //     out.write((char*)&data[i].value, sizeof(long long int));
+    //     out.write((char*)&end_token, sizeof(char));
     // }
     // if (child[n] != nullptr) {
     //     child[n]->Save(out);
@@ -470,16 +477,72 @@ void Node::Save(ofstream &out) {
 
 void BTree::SaveToFile(char* path) {
     ofstream out(path, ios::binary);
+    short is_tree = 1;
     if (root == nullptr) {
-        out.write("0", sizeof(char));
+        is_tree = 0;
+        out.write((char*)&is_tree, sizeof(short));
         return;
     }
-    
+
+    out.write((char*)&is_tree, sizeof(short));
     root->Save(out);
+    char end_token = '$';
+    out.write((char*)&end_token, sizeof(char));
 }
 
 void BTree::LoadFromFile(char* path) {
+    if (root != nullptr) {
+        root->Delete();
+        delete root;
+        root = nullptr;
+    }
+
     ifstream in(path, ios::binary);
+    short is_tree;
+    in.read((char*)&is_tree, sizeof(short));
+    char c;
+    if (is_tree) {
+        while (true) {
+            in.read((char*)&c, sizeof(char));
+            if (c == '$') {
+                break;
+            }
+            Data tmp;
+            tmp.key[0] = c;
+            for (int i = 1; c != '\0'; ++i) {
+                in.read((char*)&c, sizeof(char));
+                tmp.key[i] = c;
+            }
+            in.read((char*)&tmp.value, sizeof(unsigned long long));
+            this->AddWithoutWord(tmp);
+            in.read((char*)&c, sizeof(char));
+        }
+    }
+    in.close();
+}
+
+void BTree::AddWithoutWord(Data elem) {
+    if (root == nullptr) {
+        root = new Node(t, true);
+        root->data[0] = elem;
+        root->n = 1;
+        return;
+    }
+    // надо сплитануть корень
+    if (root->n == 2*t-1) {
+        Node* new_root = new Node(t, false);
+        new_root->child[0] = root;
+        new_root->SplitChild(0, root);
+        // отвечает за то, в какое поддерево нужно вставлять ключ
+        int i = 0;
+        if (strcmp(elem.key, new_root->data[0].key) > 0) {
+            ++i;
+        }
+        new_root->InsertNonFull(elem);
+        root = new_root;
+    } else { 
+        root->InsertNonFull(elem);
+    }
 }
 
 void BTree::Print() {
@@ -499,9 +562,9 @@ void TolowerString(char* str) {
 }
 
 int main() {
-    // ios_base::sync_with_stdio(false);
-    // cin.tie(NULL); 
-    // cout.tie(NULL);
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL); 
+    cout.tie(NULL);
 
     BTree Tree(3);
     Data data;
@@ -512,13 +575,11 @@ int main() {
         switch (buffer[0]) {
             case '+':
                 cin >> data.key >> data.value;
-                // fscanf(stdin, "%s %lld", data.key, &data.value);
                 TolowerString(data.key);
                 Tree.AddNode(data);
                 break;
             case '-':
                 cin >> key;
-                // fscanf(stdin, "%s", key);
                 TolowerString(key);
                 Tree.DeleteNode(key);
                 break;
@@ -529,8 +590,9 @@ int main() {
                 } else {
                     Tree.LoadFromFile(path);
                 }
+                cout << "OK\n";
                 break;
-            case 'p':
+            case '#':
                 Tree.Print();
                 break;
             default:
