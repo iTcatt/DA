@@ -31,7 +31,6 @@ struct Node {
     void FillNode(int); // увеличивает количество элементов в ноде
     void Merge(int); // объединяет текущую (по переданному индексу) и следующую ноду
     void Save(ofstream&);
-    void Load(istream&);
     void Delete();
 };
 
@@ -151,12 +150,6 @@ void Node::Remove(char* key) {
             RemoveFromNonLeaf(idx); 
         }
     } else {
-        // при 
-        if (leaf) {
-            cout << "NoSuchWord\n";
-            return;
-        }
-
         bool flag;
         if (idx == n) {
             flag = true;
@@ -489,7 +482,7 @@ void BTree::SaveToFile(char* path) {
     char end_token = '$';
     out.write((char*)&end_token, sizeof(char));
 }
-
+// TODO: убрать 0 или 1 вначале и сделать функционал через $
 void BTree::LoadFromFile(char* path) {
     if (root != nullptr) {
         root->Delete();
@@ -500,23 +493,26 @@ void BTree::LoadFromFile(char* path) {
     ifstream in(path, ios::binary);
     short is_tree;
     in.read((char*)&is_tree, sizeof(short));
+    if (!is_tree) {
+        in.close();
+        return;
+    } 
+
     char c;
-    if (is_tree) {
-        while (true) {
-            in.read((char*)&c, sizeof(char));
-            if (c == '$') {
-                break;
-            }
-            Data tmp;
-            tmp.key[0] = c;
-            for (int i = 1; c != '\0'; ++i) {
-                in.read((char*)&c, sizeof(char));
-                tmp.key[i] = c;
-            }
-            in.read((char*)&tmp.value, sizeof(unsigned long long));
-            this->AddWithoutWord(tmp);
-            in.read((char*)&c, sizeof(char));
+    while (true) {
+        in.read((char*)&c, sizeof(char));
+        if (c == '$') {
+            break;
         }
+        Data tmp;
+        tmp.key[0] = c;
+        for (int i = 1; c != '\0'; ++i) {
+            in.read((char*)&c, sizeof(char));
+            tmp.key[i] = c;
+        }
+        in.read((char*)&tmp.value, sizeof(unsigned long long));
+        this->AddWithoutWord(tmp);
+        in.read((char*)&c, sizeof(char));
     }
     in.close();
 }
