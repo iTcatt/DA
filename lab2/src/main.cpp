@@ -462,17 +462,17 @@ void BTree::LoadFromFile(char* path) {
     }
 
     ifstream in(path, ios::binary);
-    char c;
+    char symbol;
     while (true) {
-        in.read((char*)&c, sizeof(char));
-        if (c == '$') {
+        in.read((char*)&symbol, sizeof(char));
+        if (symbol == '$') {
             break;
         }
         Data inserted_elem;
-        inserted_elem.key[0] = c;
-        for (int i = 1; c != '\0'; ++i) {
-            in.read((char*)&c, sizeof(char));
-            inserted_elem.key[i] = c;
+        inserted_elem.key[0] = symbol;
+        for (int i = 1; symbol != '\0'; ++i) {
+            in.read((char*)&symbol, sizeof(char));
+            inserted_elem.key[i] = symbol;
         }
         in.read((char*)&inserted_elem.value, sizeof(unsigned long long));
         this->AddWithoutWord(inserted_elem);
