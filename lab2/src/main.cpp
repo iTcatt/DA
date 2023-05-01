@@ -333,7 +333,7 @@ class BTree {
 public:
     BTree(int);
     void AddNode(Data);
-    void AddWithoutWord(Data);
+    void AddOnLoad(Data);
     void DeleteNode(char*);
     void Search(char*);
     void SaveToFile(char*);
@@ -452,6 +452,7 @@ void BTree::SaveToFile(char* path) {
         root->Save(out);
     }
     out.write((char*)&end_token, sizeof(char));
+    out.close();
 }
 
 void BTree::LoadFromFile(char* path) {
@@ -475,12 +476,12 @@ void BTree::LoadFromFile(char* path) {
             inserted_elem.key[i] = symbol;
         }
         in.read((char*)&inserted_elem.value, sizeof(unsigned long long));
-        this->AddWithoutWord(inserted_elem);
+        this->AddOnLoad(inserted_elem);
     }
     in.close();
 }
 
-void BTree::AddWithoutWord(Data inserted_elem) {
+void BTree::AddOnLoad(Data inserted_elem) {
     if (root == nullptr) {
         root = new Node(t, true);
         root->data[0] = inserted_elem;
