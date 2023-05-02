@@ -31,7 +31,7 @@ struct Node {
     void FillNode(int); // увеличивает количество элементов в ноде
     void Merge(int); // объединяет текущую (по переданному индексу) и следующую ноду
     void Save(ofstream&);
-    void Delete();
+    void Destroy();
 };
 
 Node::Node(int _t, bool is_leaf) {
@@ -312,7 +312,7 @@ void Node::Merge(int index) {
     delete right_child;
 }
 
-void Node::Delete() {
+void Node::Destroy() {
     delete[] data;
     if (child[0] == nullptr) {
         delete[] child;
@@ -320,7 +320,7 @@ void Node::Delete() {
     }
     for (int i = 0; i <= n; ++i) {
         if (child[i] != nullptr) {
-            child[i]->Delete();
+            child[i]->Destroy();
         }
         delete child[i];
     }
@@ -349,7 +349,7 @@ BTree::BTree(int _t = 2) {
 
 BTree::~BTree() {
     if (root != nullptr) {
-        root->Delete();
+        root->Destroy();
     }
     delete root;
 }
@@ -433,7 +433,7 @@ void BTree::DeleteNode(char* key) {
 
 void Node::Save(ofstream &out) {
     for (int i = 0; i < n; ++i) {
-        if (child[i] != nullptr) {
+        if (!leaf) {
             child[i]->Save(out);
         }    
         out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
@@ -457,7 +457,7 @@ void BTree::SaveToFile(char* path) {
 
 void BTree::LoadFromFile(char* path) {
     if (root != nullptr) {
-        root->Delete();
+        root->Destroy();
         delete root;
         root = nullptr;
     }
@@ -528,7 +528,6 @@ int main() {
 
     BTree Tree(3);
     Data data;
-    char key[MAX_SIZE];
     char path[MAX_SIZE];
     char buffer[MAX_SIZE];
     while(cin >> buffer) {
@@ -539,9 +538,9 @@ int main() {
                 Tree.AddNode(data);
                 break;
             case '-':
-                cin >> key;
-                TolowerString(key);
-                Tree.DeleteNode(key);
+                cin >> buffer;
+                TolowerString(buffer);
+                Tree.DeleteNode(buffer);
                 break;
             case '!':
                 cin >> buffer >> path;
