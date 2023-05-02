@@ -314,7 +314,7 @@ void Node::Merge(int index) {
 
 void Node::Destroy() {
     delete[] data;
-    if (child[0] == nullptr) {
+    if (leaf) {
         delete[] child;
         return;
     }
@@ -432,25 +432,33 @@ void BTree::DeleteNode(char* key) {
 }
 
 void Node::Save(ofstream &out) {
-    for (int i = 0; i < n; ++i) {
-        if (!leaf) {
+    if (child[0] == nullptr) {
+        for (int i = 0; i < n; ++i) {
+            out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
+            out.write((char*)&data[i].value, sizeof(long long int));
+        }
+    } else {
+        for (int i = 0; i < n; ++i) {
             child[i]->Save(out);
-        }    
-        out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
-        out.write((char*)&data[i].value, sizeof(long long int));
-    }
-    // обработка последнего ребенка
-    if (child[n] != nullptr) {
+            out.write(data[i].key, sizeof(char) * (strlen(data[i].key) + 1));  
+            out.write((char*)&data[i].value, sizeof(long long int));
+        }
         child[n]->Save(out);
     }
 }
 
 void BTree::SaveToFile(char* path) {
     ofstream out(path, ios::binary);
-    char end_token = '$';
-    if (root != nullptr) {
-        root->Save(out);
+    short is_tree = 1;
+    if (root == nullptr) {
+        is_tree = 0;
+        out.write((char*)&is_tree, sizeof(short));
+        return;
     }
+
+    out.write((char*)&is_tree, sizeof(short));
+    root->Save(out);
+    char end_token = '$';
     out.write((char*)&end_token, sizeof(char));
     out.close();
 }
@@ -463,20 +471,24 @@ void BTree::LoadFromFile(char* path) {
     }
 
     ifstream in(path, ios::binary);
-    char symbol;
-    while (true) {
-        in.read((char*)&symbol, sizeof(char));
-        if (symbol == '$') {
-            break;
+    short is_tree;
+    in.read((char*)&is_tree, sizeof(short));
+    char c;
+    if (is_tree) {
+        while (true) {
+            in.read((char*)&c, sizeof(char));
+            if (c == '$') {
+                break;
+            }
+            Data inserted_elem;
+            inserted_elem.key[0] = c;
+            for (int i = 1; c != '\0'; ++i) {
+                in.read((char*)&c, sizeof(char));
+                inserted_elem.key[i] = c;
+            }
+            in.read((char*)&inserted_elem.value, sizeof(unsigned long long));
+            this->AddOnLoad(inserted_elem);
         }
-        Data inserted_elem;
-        inserted_elem.key[0] = symbol;
-        for (int i = 1; symbol != '\0'; ++i) {
-            in.read((char*)&symbol, sizeof(char));
-            inserted_elem.key[i] = symbol;
-        }
-        in.read((char*)&inserted_elem.value, sizeof(unsigned long long));
-        this->AddOnLoad(inserted_elem);
     }
     in.close();
 }
