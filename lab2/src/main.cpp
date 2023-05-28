@@ -12,14 +12,13 @@ struct Data {
 };
 
 struct Node {
-    Data* data; // массив ключ-значение
+    Data* data;
     Node** child; // массив указателей на детей
     int n; // количество элементов
     bool leaf; // является ли листом
     int t; // характеристическое число
 
     Node(int, bool);
-    void Traverse(int); // функция вывода всех ключей текущего поддерева
     Node* Search(char*); // поиск ноды с нужным ключем
     void SplitChild(int, Node*); // если ребенок переполнен, разделяем его
     void InsertNonFull(Data); // вставка 
@@ -45,22 +44,6 @@ Node::Node(int _t, bool is_leaf) {
     n = 0;
 }
 
-void Node::Traverse(int depth) {
-    for (int i = 0; i < n; i++) {
-        if (leaf == false) {
-            child[i]->Traverse(depth+1);
-        }
-        for (int j = 0; j < depth; ++j) {
-            cout << "\t";
-        } 
-        cout << data[i].key << " " << data[i].value << "\n";
-    }
-    // обработка последнего ребенка
-    if (leaf == false) {
-        child[n]->Traverse(depth+1);
-    }
-}
-
 Node* Node::Search(char* key) {
     int i = 0;
     while (i < n && strcmp(key, data[i].key) > 0) {
@@ -82,16 +65,16 @@ void Node::SplitChild(int index, Node* full_node) {
     // full_node это дочерний узел, который мы разделяем
     
     // создаем новый узел
-    Node* new_child = new Node(full_node->t, full_node->leaf);
-    new_child->n = t - 1;
+    Node* new_node = new Node(full_node->t, full_node->leaf);
+    new_node->n = t - 1;
     // копируем вторую половину старого узла в новый
     for (int i = 0; i < t - 1; ++i) {
-        new_child->data[i] = full_node->data[i + t];
+        new_node->data[i] = full_node->data[i + t];
     }
     // если есть дети, то их тоже перепривязываем
     if (full_node->leaf == false) {
-        for (int j = 0; j < t; ++j) {
-            new_child->child[j] = full_node->child[j+t];
+        for (int i = 0; i < t; ++i) {
+            new_node->child[i] = full_node->child[i+t];
         }
     }
     
@@ -100,8 +83,8 @@ void Node::SplitChild(int index, Node* full_node) {
     for (int i = n; i >= index + 1; --i) {
         child[i + 1] = child[i];
     }
-    // теперь new_child стал правым ребенком, а full_node стал левым 
-    child[index + 1] = new_child;
+    // теперь new_node стал правым ребенком, а full_node стал левым 
+    child[index + 1] = new_node;
     // сдвигаю ключи вправо, чтобы поставить новый ключ
     for (int i = n - 1; i >= index; --i) {
         data[i + 1] = data[i];
@@ -153,9 +136,7 @@ void Node::Remove(char* key) {
         if (child[idx]->n < t) {
             FillNode(idx);
         }
-        // в функции FillNode может произойти merge и 
-        // может поменяться кол-во элементов в узле
-        // если кол-во изменилась, то ребенка по номеру idx не существует
+
         if (idx > n) {
             child[idx-1]->Remove(key);
         } else {
@@ -165,7 +146,7 @@ void Node::Remove(char* key) {
 }
 
 void Node::RemoveFromLeaf(int index) {
-    for (int i = index+1; i < n; ++i) {
+    for (int i = index+1; i < n; i++) {
         data[i-1] = data[i];
     }
     --n;
@@ -179,7 +160,7 @@ void Node::RemoveFromNonLeaf(int index) {
     // поэтому удаляем только тогда, когда есть как минимум 
     // t элементов
     if (child[index]->n >= t) {
-        // нахожу максимальный ключ в левом поддереве 
+        // нахожу максимальный ключ в левом поддереве
         Node* max_node = child[index];
         while (!max_node->leaf) {
             // тут был жесткий баг я написал child[n] 
@@ -203,7 +184,6 @@ void Node::RemoveFromNonLeaf(int index) {
         // если у обоих детей по t-1 элеметов, то их нужно объединить
         // и из объединенного узла удалить ключ
         Merge(index);
-        // this->Traverse(0);
         child[index]->Remove(key);
     }
 }
@@ -306,7 +286,6 @@ void Node::Merge(int index) {
 
     left_child->n = 2*t - 1;
     --n;
-    // здесь была утечка памяти
     delete[] right_child->data;
     delete[] right_child->child;
     delete right_child;
@@ -314,7 +293,7 @@ void Node::Merge(int index) {
 
 void Node::Destroy() {
     delete[] data;
-    if (leaf) {
+    if (child[0] == nullptr) {
         delete[] child;
         return;
     }
@@ -338,7 +317,6 @@ public:
     void Search(char*);
     void SaveToFile(char*);
     void LoadFromFile(char*);
-    void Print();
     ~BTree();
 };
 
@@ -354,16 +332,16 @@ BTree::~BTree() {
     delete root;
 }
 
-void BTree::AddNode(Data inserted_elem) {
+void BTree::AddNode(Data elem) {
     if (root == nullptr) {
         root = new Node(t, true);
-        root->data[0] = inserted_elem;
+        root->data[0] = elem;
         root->n = 1;
         cout << "OK\n";
         return;
     }
     // ключ уже есть
-    if (root->Search(inserted_elem.key) != nullptr) {
+    if (root->Search(elem.key) != nullptr) {
         cout << "Exist\n";
         return;
     }
@@ -374,13 +352,13 @@ void BTree::AddNode(Data inserted_elem) {
         new_root->SplitChild(0, root);
         // отвечает за то, в какое поддерево нужно вставлять ключ
         int i = 0;
-        if (strcmp(inserted_elem.key, new_root->data[0].key) > 0) {
+        if (strcmp(elem.key, new_root->data[0].key) > 0) {
             ++i;
         }
-        new_root->InsertNonFull(inserted_elem);
+        new_root->InsertNonFull(elem);
         root = new_root;
     } else { 
-        root->InsertNonFull(inserted_elem);
+        root->InsertNonFull(elem);
     }
     cout << "OK\n";
 }
@@ -423,12 +401,12 @@ void BTree::DeleteNode(char* key) {
         } else {
             root = root->child[0];
         }
-        // здесь была утечка памяти
         delete[] old_root->data;
         delete[] old_root->child;
         delete old_root;
     }
     cout << "OK\n";
+
 }
 
 void Node::Save(ofstream &out) {
@@ -493,10 +471,10 @@ void BTree::LoadFromFile(char* path) {
     in.close();
 }
 
-void BTree::AddOnLoad(Data inserted_elem) {
+void BTree::AddOnLoad(Data elem) {
     if (root == nullptr) {
         root = new Node(t, true);
-        root->data[0] = inserted_elem;
+        root->data[0] = elem;
         root->n = 1;
         return;
     }
@@ -507,22 +485,13 @@ void BTree::AddOnLoad(Data inserted_elem) {
         new_root->SplitChild(0, root);
         // отвечает за то, в какое поддерево нужно вставлять ключ
         int i = 0;
-        if (strcmp(inserted_elem.key, new_root->data[0].key) > 0) {
+        if (strcmp(elem.key, new_root->data[0].key) > 0) {
             ++i;
         }
-        new_root->InsertNonFull(inserted_elem);
+        new_root->InsertNonFull(elem);
         root = new_root;
     } else { 
-        root->InsertNonFull(inserted_elem);
-    }
-}
-
-void BTree::Print() {
-    if (root != nullptr) {
-        root->Traverse(0);
-        cout << "\n\n";
-    } else {
-        cout << "Emtpy\n";
+        root->InsertNonFull(elem);
     }
 }
 
@@ -562,9 +531,6 @@ int main() {
                     Tree.LoadFromFile(path);
                 }
                 cout << "OK\n";
-                break;
-            case '#':
-                Tree.Print();
                 break;
             default:
                 TolowerString(buffer);

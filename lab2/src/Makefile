@@ -5,11 +5,11 @@ all: build run
 build: main.cpp
 	g++ $(FLAGS) main.cpp -o main
 
-run: 
-	./main < input.txt > out.txt
+run: build
+	./main < input.txt > output.txt
 
 valgrind: build
-	valgrind ./main < input.txt
+	valgrind ./main < input.txt > output.txt
 
 clean: 
 	rm *.o main
