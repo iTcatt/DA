@@ -13,16 +13,5 @@ simple:
 gen:
 	go build -o generator generator.go
 
-test: gen build simple
-	./generator 1000 100000
-	./main < gen.txt > out.txt
-	./simple < gen.txt >> out.txt
-	./generator 1000 500000
-	./main < gen.txt >> out.txt
-	./simple < gen.txt >> out.txt
-	./generator 1000 1000000
-	./main < gen.txt >> out.txt
-	./simple < gen.txt >> out.txt
-
 clean:
-	rm main *.exe out.txt gen.txt
+	rm main simple *.exe gen.txt

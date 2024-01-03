@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <chrono>
 
 using namespace std;
 
@@ -131,8 +130,6 @@ int main() {
     string text;
     cin >> text;
     build_string = text + "{";
-    // chrono::time_point<chrono::system_clock> start, end;
-    // start = chrono::system_clock::now();
     Node suffix_tree_root = Node(-1, -1, -1);
     for (size_t position = 0; position < build_string.length(); ++position) {
         suffix_tree_root.Insert((int)position, (int)position);
@@ -155,9 +152,6 @@ int main() {
            cout << "\n";
        }
     }
-    // end = chrono::system_clock::now();
-    // chrono::duration<double> elapsed_seconds = end - start;
-    // cout << "Main: количество паттернов - " << word_number << " Время - " << elapsed_seconds.count() << "\n";
 //    suffix_tree_root.Print(0);
     return 0;
 }
